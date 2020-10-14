@@ -3,8 +3,8 @@
 #include "lexer.h"
 
 TEST(Lexer, PeekWorks) {
-  std::wstring testInput{L"12 34"};
-  std::wstringstream ss;
+  std::string testInput{"12 34"};
+  std::stringstream ss;
   ss << testInput;
   lexer::Lexer lexer(ss);
   ASSERT_EQ(lexer.peek(), tokens::Token(tokens::Number(12)));
@@ -12,8 +12,8 @@ TEST(Lexer, PeekWorks) {
 }
 
 TEST(Lexer, PopWorks) {
-  std::wstring testInput{L"12 34"};
-  std::wstringstream ss;
+  std::string testInput{"12 34"};
+  std::stringstream ss;
   ss << testInput;
   lexer::Lexer lexer(ss);
   ASSERT_EQ(lexer.pop(), tokens::Token(tokens::Number(12)));
@@ -21,14 +21,14 @@ TEST(Lexer, PopWorks) {
 }
 
 TEST(Lexer, ParsesAllIdentifiersCorrectly) {
-  std::wstring testInput{L"def extern x 12.34 ("};
-  std::wstringstream ss;
+  std::string testInput{"def extern x 12.34 ("};
+  std::stringstream ss;
   ss << testInput;
   lexer::Lexer lexer(ss);
 
   ASSERT_TRUE(std::holds_alternative<tokens::Def>(lexer.pop()));
   ASSERT_TRUE(std::holds_alternative<tokens::Extern>(lexer.pop()));
-  ASSERT_EQ(lexer.pop(), tokens::Token(tokens::Identifier(L"x")));
+  ASSERT_EQ(lexer.pop(), tokens::Token(tokens::Identifier("x")));
   ASSERT_EQ(lexer.pop(), tokens::Token(tokens::Number(12.34)));
-  ASSERT_EQ(lexer.pop(), tokens::Token(tokens::Character(L'(')));
+  ASSERT_EQ(lexer.pop(), tokens::Token(tokens::Character('(')));
 }

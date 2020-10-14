@@ -32,7 +32,7 @@ Parser::parseExpression(lexer::Lexer &input) {
 
 std::unique_ptr<ast::Prototype> Parser::parsePrototype(lexer::Lexer &input) {
   auto next = input.pop();
-  std::wstring fnName;
+  std::string fnName;
   try {
     fnName = std::get<tokens::Identifier>(next).ident;
   } catch (const std::bad_variant_access &) {
@@ -41,7 +41,7 @@ std::unique_ptr<ast::Prototype> Parser::parsePrototype(lexer::Lexer &input) {
 
   assertIsCharacter(input.pop(), '(', "prototype must open with '('");
 
-  std::vector<std::wstring> argNames;
+  std::vector<std::string> argNames;
   tokens::Token token;
   while (std::holds_alternative<tokens::Identifier>(token = input.pop())) {
     argNames.push_back(std::get<tokens::Identifier>(token).ident);
@@ -85,8 +85,8 @@ Parser::parsePrimary(const tokens::Token &token, lexer::Lexer &input) {
 
 std::unique_ptr<ast::AstNode> Parser::parseTopLevelExpr(lexer::Lexer &input) {
   if (auto E = parseExpression(input)) {
-    auto proto = std::make_unique<ast::Prototype>(L"__anon_expr",
-                                                  std::vector<std::wstring>{});
+    auto proto = std::make_unique<ast::Prototype>("__anon_expr",
+                                                  std::vector<std::string>{});
     return std::make_unique<ast::AstNode>(
         ast::Function(std::move(proto), std::move(E)));
   }
@@ -108,7 +108,7 @@ std::unique_ptr<ast::expr::ExprNode> Parser::parseParen(lexer::Lexer &input) {
 
 std::unique_ptr<ast::expr::ExprNode>
 Parser::parseIdentifier(const tokens::Identifier &ident, lexer::Lexer &input) {
-  std::wstring idName = ident.ident;
+  std::string idName = ident.ident;
 
   if (!(input.peek() == tokens::Token{tokens::Character{L'('}})) {
     return std::make_unique<ast::expr::ExprNode>(idName);
@@ -197,7 +197,7 @@ int Parser::getOpPrecedence(tokens::Token token) {
     return -1;
   }
 
-  wchar_t character = std::get<tokens::Character>(token).character;
+  char character = std::get<tokens::Character>(token).character;
 
   auto search = binOpPrecedence.find(character);
   if (search == binOpPrecedence.end())
@@ -221,7 +221,7 @@ std::unique_ptr<ast::AstNode> Parser::parseDefinition(lexer::Lexer &input) {
   return nullptr;
 }
 
-void Parser::assertIsCharacter(const tokens::Token &tkn, wchar_t target,
+void Parser::assertIsCharacter(const tokens::Token &tkn, char target,
                                const std::string &error) {
   using namespace std::string_literals;
   try {

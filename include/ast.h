@@ -1,10 +1,22 @@
 #ifndef AST_H_
 #define AST_H_
 
-#include <variant>
-#include <memory>
-#include <vector>
 #include <iostream>
+#include <memory>
+#include <variant>
+#include <vector>
+
+#include "llvm/ADT/APFloat.h"
+#include "llvm/ADT/STLExtras.h"
+#include "llvm/IR/BasicBlock.h"
+#include "llvm/IR/Constants.h"
+#include "llvm/IR/DerivedTypes.h"
+#include "llvm/IR/Function.h"
+#include "llvm/IR/IRBuilder.h"
+#include "llvm/IR/LLVMContext.h"
+#include "llvm/IR/Module.h"
+#include "llvm/IR/Type.h"
+#include "llvm/IR/Verifier.h"
 
 namespace ast {
 class AstInterface {};
@@ -17,55 +29,86 @@ class Call;
 
 using ExprNode = std::variant<Number, Variable, Binary, Call>;
 
-class ExprInterface : public AstInterface {};
+using named_values_t = std::unordered_map<std::string, llvm::Value *>;
+
+class ExprInterface : public AstInterface {
+public:
+  virtual ~ExprInterface() {}
+  virtual llvm::Value *codegen(llvm::LLVMContext &context,
+                               llvm::IRBuilder<> &builder,
+                               std::shared_ptr<llvm::Module> llvmModule,
+                               named_values_t &namedValues) const {
+    return nullptr;
+  };
+};
 
 class Number : public ExprInterface {
 public:
   Number(double val);
 
-  friend std::wostream &operator<<(std::wostream &out, const Number &expr);
+  virtual llvm::Value *codegen(llvm::LLVMContext &context,
+                               llvm::IRBuilder<> &builder,
+                               std::shared_ptr<llvm::Module> llvmModule,
+                               named_values_t &namedValues) const override;
+
+  friend std::ostream &operator<<(std::ostream &out, const Number &expr);
 
   double val;
 };
 
 class Variable : public ExprInterface {
 public:
-  Variable(const std::wstring &name);
+  Variable(const std::string &name);
 
-  std::wstring name;
+  virtual llvm::Value *codegen(llvm::LLVMContext &context,
+                               llvm::IRBuilder<> &builder,
+                               std::shared_ptr<llvm::Module> llvmModule,
+                               named_values_t &namedValues) const override;
 
-  friend std::wostream &operator<<(std::wostream &out, const Variable &var);
+  friend std::ostream &operator<<(std::ostream &out, const Variable &var);
+
+  std::string name;
 };
 
 class Binary : public ExprInterface {
 public:
-  Binary(wchar_t op, std::unique_ptr<ExprNode> lhs,
-                 std::unique_ptr<ExprNode> rhs);
+  Binary(char op, std::unique_ptr<ExprNode> lhs,
+         std::unique_ptr<ExprNode> rhs);
 
-  wchar_t op;
+  virtual llvm::Value *codegen(llvm::LLVMContext &context,
+                               llvm::IRBuilder<> &builder,
+                               std::shared_ptr<llvm::Module> llvmModule,
+                               named_values_t &namedValues) const override;
+
+  char op;
   std::unique_ptr<ExprNode> lhs;
   std::unique_ptr<ExprNode> rhs;
 
-  friend std::wostream &operator<<(std::wostream &out, const Binary &op);
+  friend std::ostream &operator<<(std::ostream &out, const Binary &op);
 };
 
 class Call : public ExprInterface {
 public:
-  Call(const std::wstring &callee, std::vector<std::unique_ptr<ExprNode>> args);
+  Call(const std::string &callee, std::vector<std::unique_ptr<ExprNode>> args);
 
-  std::wstring callee;
+  virtual llvm::Value *codegen(llvm::LLVMContext &context,
+                               llvm::IRBuilder<> &builder,
+                               std::shared_ptr<llvm::Module> llvmModule,
+                               named_values_t &namedValues) const override;
+
+  std::string callee;
   std::vector<std::unique_ptr<ExprNode>> args;
 
-  friend std::wostream &operator<<(std::wostream &out, const Call &call);
+  friend std::ostream &operator<<(std::ostream &out, const Call &call);
 };
 } // namespace expr
 
 class Prototype : public AstInterface {
 public:
-  Prototype(const std::wstring &name, std::vector<std::wstring> args);
+  Prototype(const std::string &name, std::vector<std::string> args);
 
-  std::wstring name;
-  std::vector<std::wstring> args;
+  std::string name;
+  std::vector<std::string> args;
 };
 
 class Function : public AstInterface {

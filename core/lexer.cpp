@@ -1,11 +1,11 @@
 #include "lexer.h"
 
 namespace {
-bool isDecimal(wchar_t c) { return std::isdigit(c) || c == L'.'; }
+bool isDecimal(char c) { return std::isdigit(c) || c == '.'; }
 } // namespace
 
 namespace lexer {
-Lexer::Lexer(std::wistream &input) {
+Lexer::Lexer(std::istream &input) {
   tokens::Token token;
   do {
     token = extractToken(input);
@@ -29,25 +29,25 @@ tokens::Token Lexer::pop() {
   return front;
 }
 
-tokens::Token Lexer::extractToken(std::wistream &input) {
-  wchar_t next;
+tokens::Token Lexer::extractToken(std::istream &input) {
+  char next;
   input >> std::skipws >> next;
 
   if (!input)
     return tokens::Eof{};
 
   if (std::isalpha(next)) {
-    std::wstring iden;
+    std::string iden;
     iden += next;
     while (input.peek() != WEOF && std::isalpha(input.peek())) {
       input >> std::noskipws >> next;
       iden += next;
     }
 
-    if (iden == L"def") {
+    if (iden == "def") {
       return tokens::Def{};
     }
-    if (iden == L"extern") {
+    if (iden == "extern") {
       return tokens::Extern{};
     }
     return tokens::Identifier{iden};
@@ -55,7 +55,7 @@ tokens::Token Lexer::extractToken(std::wistream &input) {
 
   if (isDecimal(next)) {
     // TODO: Avoid string parsing for performance?
-    std::wstring numStr;
+    std::string numStr;
     numStr += next;
 
     while (input.peek() != WEOF && isDecimal(input.peek())) {

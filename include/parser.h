@@ -32,11 +32,11 @@ private:
   int getOpPrecedence(tokens::Token token);
   std::unique_ptr<ast::AstNode> parseExtern(lexer::Lexer &input);
   std::unique_ptr<ast::AstNode> parseDefinition(lexer::Lexer &input);
-  void assertIsCharacter(const tokens::Token &tkn, wchar_t target,
+  void assertIsCharacter(const tokens::Token &tkn, char target,
                          const std::string &error);
 
 public:
-  std::unordered_map<wchar_t, int> binOpPrecedence{
+  std::unordered_map<char, int> binOpPrecedence{
       {'<', 10}, {'+', 20}, {'-', 20}, {'*', 40}};
 };
 } // namespace parser

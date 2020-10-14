@@ -6,8 +6,8 @@
 
 int main()
 {
-	std::wstring source{ L"def plustwo(x) x + 2;" };
-	std::wstringstream sourceStream{ source };
+	std::string source{ "def plustwo(x) x + 2;" };
+	std::stringstream sourceStream{ source };
 	
 	lexer::Lexer lexer{ sourceStream };
 

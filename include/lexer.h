@@ -10,7 +10,7 @@
 namespace lexer {
 class Lexer {
 public:
-  Lexer(std::wistream &input);
+  Lexer(std::istream &input);
 
   tokens::Token peek(size_t forward = 0ull) const;
   tokens::Token pop();
@@ -18,7 +18,7 @@ public:
 private:
   std::list<tokens::Token> tokens;
 
-  tokens::Token extractToken(std::wistream &input);
+  tokens::Token extractToken(std::istream &input);
 };
 } // namespace lexer
 
