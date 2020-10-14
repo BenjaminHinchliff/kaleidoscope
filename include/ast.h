@@ -1,9 +1,10 @@
 #ifndef AST_H_
 #define AST_H_
 
-#include <iostream>
 #include <variant>
+#include <memory>
 #include <vector>
+#include <iostream>
 
 namespace ast {
 class AstInterface {};
@@ -38,7 +39,7 @@ public:
 
 class Binary : public ExprInterface {
 public:
-  Binary::Binary(wchar_t op, std::unique_ptr<ExprNode> lhs,
+  Binary(wchar_t op, std::unique_ptr<ExprNode> lhs,
                  std::unique_ptr<ExprNode> rhs);
 
   wchar_t op;

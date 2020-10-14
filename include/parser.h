@@ -1,20 +1,12 @@
 #ifndef PARSER_H_
 #define PARSER_H_
 
-#include <iostream>
+#include <memory>
 #include <unordered_map>
-#include <variant>
-#include <vector>
 
 #include "ast.h"
 #include "lexer.h"
 #include "tokens.h"
-
-template <class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
-template <class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
-
-const std::unordered_map<wchar_t, int> binOpPrecedence{
-    {'<', 10}, {'+', 20}, {'-', 20}, {'*', 40}};
 
 namespace parser {
 class Parser {
@@ -42,6 +34,10 @@ private:
   std::unique_ptr<ast::AstNode> parseDefinition(lexer::Lexer &input);
   void assertIsCharacter(const tokens::Token &tkn, wchar_t target,
                          const std::string &error);
+
+public:
+  std::unordered_map<wchar_t, int> binOpPrecedence{
+      {'<', 10}, {'+', 20}, {'-', 20}, {'*', 40}};
 };
 } // namespace parser
 

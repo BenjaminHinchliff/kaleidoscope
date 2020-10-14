@@ -1,9 +1,8 @@
 #ifndef LEXER_H_
 #define LEXER_H_
 
-#include <cctype>
-#include <iostream>
 #include <list>
+#include <cctype>
 #include <string>
 
 #include "tokens.h"
@@ -13,7 +12,7 @@ class Lexer {
 public:
   Lexer(std::wistream &input);
 
-  tokens::Token peek(size_t forward = 0ui64) const;
+  tokens::Token peek(size_t forward = 0ull) const;
   tokens::Token pop();
 
 private:

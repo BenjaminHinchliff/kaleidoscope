@@ -1,5 +1,8 @@
 #include "parser.h"
 
+template <class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
+template <class... Ts> overloaded(Ts...)->overloaded<Ts...>;
+
 namespace parser {
 Parser::Parser() {}
 
@@ -95,8 +98,8 @@ std::unique_ptr<ast::expr::ExprNode> Parser::parseParen(lexer::Lexer &input) {
   if (!v)
     return nullptr;
 
-  if (auto token = std::get_if<tokens::Character>(&input.peek());
-      token && token->character != ')') {
+  auto top = input.peek();
+  if (auto token = std::get_if<tokens::Character>(&top); token && token->character != ')') {
     throw std::runtime_error("unclosed parentheses!");
   }
   input.pop();
