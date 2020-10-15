@@ -1,39 +1,96 @@
 #include <iostream>
-#include <string>
 #include <sstream>
+#include <string>
 
+#include "llvm/Support/TargetSelect.h"
+#include "llvm/Target/TargetMachine.h"
+#include "llvm/Transforms/InstCombine/InstCombine.h"
+#include "llvm/Transforms/Scalar.h"
+#include "llvm/Transforms/Scalar/GVN.h"
+
+#include "KaleidoscopeJIT.h"
 #include "parser.h"
 
-int main()
-{
-	std::string source{ "def plustwo(x) x + 2; plustwo(2);" };
-	std::stringstream sourceStream{ source };
-	
-	lexer::Lexer lexer{ sourceStream };
+template <class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
+template <class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
 
-	llvm::LLVMContext context;
-	llvm::IRBuilder<> builder(context);
-	auto llvmModule = std::make_shared<llvm::Module>("KaleidoscopeJIT", context);
-	ast::named_values_t namedValues;
+using pass_manager_ptr = std::unique_ptr<llvm::legacy::FunctionPassManager>;
+using jit_ptr = std::unique_ptr<llvm::orc::KaleidoscopeJIT>;
 
-	parser::Parser parser{};
+pass_manager_ptr
+makeFunctionPasses(const std::unique_ptr<llvm::Module> &llvmModule) {
+  auto fpm =
+      std::make_unique<llvm::legacy::FunctionPassManager>(llvmModule.get());
+  fpm->add(llvm::createInstructionCombiningPass());
+  fpm->add(llvm::createReassociatePass());
+  fpm->add(llvm::createGVNPass());
+  fpm->add(llvm::createCFGSimplificationPass());
 
-	while (!std::holds_alternative<tokens::Eof>(lexer.peek()))
-	{
-		auto ast = parser.parse(lexer);
-		auto fnIR = std::visit([&](const auto& ast) { return ast.codegen(context, builder, llvmModule, namedValues); }, *ast);
-		auto end = std::get<tokens::Character>(lexer.pop());
-		if (end.character != ';')
-		{
-			std::cerr << "each expression must end with semicolon!";
-			return 1;
-		}
-		std::cout << "Partial:\n";
-		fnIR->print(llvm::outs(), nullptr);
-	}
+  fpm->doInitialization();
+  return fpm;
+}
 
-	std::cout << "Final:\n";
-	llvmModule->print(llvm::outs(), nullptr);
+std::unique_ptr<llvm::Module> makeModule(llvm::LLVMContext &context,
+                                         const jit_ptr &jit) {
+  auto llvmMod = std::make_unique<llvm::Module>("KaleidoscopeJIT", context);
+  llvmMod->setDataLayout(jit->getTargetMachine().createDataLayout());
+  return llvmMod;
+}
 
-	return 0;
+int main() {
+  llvm::InitializeNativeTarget();
+  llvm::InitializeNativeTargetAsmPrinter();
+  llvm::InitializeNativeTargetAsmParser();
+
+  std::string source{"def plustwo(x) x + 2; plustwo(2);"};
+  std::stringstream sourceStream{source};
+
+  lexer::Lexer lexer{sourceStream};
+
+  parser::Parser parser{};
+
+  llvm::LLVMContext context;
+  llvm::IRBuilder<> builder(context);
+  ast::named_values_t namedValues;
+  ast::function_protos_t functionProtos;
+
+  auto jit = std::make_unique<llvm::orc::KaleidoscopeJIT>();
+  auto llvmModule = makeModule(context, jit);
+  auto passes = makeFunctionPasses(llvmModule);
+
+  while (!std::holds_alternative<tokens::Eof>(lexer.peek())) {
+    auto ast = parser.parse(lexer);
+    auto fnIR = std::visit(
+        overloaded{[&](ast::Prototype &ast) {
+                     return ast.codegen(context, builder, llvmModule,
+                                        namedValues, functionProtos);
+                   },
+                   [&](ast::Function &ast) {
+                     return ast.codegen(context, builder, llvmModule,
+                                        namedValues, functionProtos, passes);
+                   }},
+        *ast);
+    auto end = std::get<tokens::Character>(lexer.pop());
+    if (end.character != ';') {
+      std::cerr << "each expression must end with semicolon!";
+      return 1;
+    }
+
+    std::cout << "Partial:\n";
+    fnIR->print(llvm::outs(), nullptr);
+
+    auto modHandle = jit->addModule(std::move(llvmModule));
+    llvmModule = makeModule(context, jit);
+    passes = makeFunctionPasses(llvmModule);
+
+    auto exprSymbol = jit->findSymbol("__anon_expr");
+    if (exprSymbol) {
+      double (*fP)() =
+          (double (*)())(intptr_t)llvm::cantFail(exprSymbol.getAddress());
+      std::cout << "Evaluated to " << fP() << '\n';
+      jit->removeModule(modHandle);
+    }
+  }
+
+  return 0;
 }

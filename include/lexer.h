@@ -1,8 +1,8 @@
 #ifndef LEXER_H_
 #define LEXER_H_
 
-#include <list>
 #include <cctype>
+#include <list>
 #include <string>
 
 #include "tokens.h"

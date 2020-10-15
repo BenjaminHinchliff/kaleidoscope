@@ -14,6 +14,7 @@
 #include "llvm/IR/Function.h"
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/LLVMContext.h"
+#include "llvm/IR/LegacyPassManager.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Type.h"
 #include "llvm/IR/Verifier.h"
@@ -21,13 +22,24 @@
 namespace ast {
 using named_values_t = std::unordered_map<std::string, llvm::Value *>;
 
+class Prototype;
+using function_protos_t =
+    std::unordered_map<std::string, std::unique_ptr<Prototype>>;
+
+llvm::Function *
+getFunction(llvm::LLVMContext &context, llvm::IRBuilder<> &builder,
+            std::unique_ptr<llvm::Module> &llvmModule,
+            named_values_t &namedValues, function_protos_t &functionProtos,
+            std::unique_ptr<llvm::legacy::FunctionPassManager> &passes);
+
 class AstInterface {
 public:
   virtual ~AstInterface() {}
-  virtual llvm::Value *codegen(llvm::LLVMContext &context,
-                               llvm::IRBuilder<> &builder,
-                               std::shared_ptr<llvm::Module> llvmModule,
-                               named_values_t &namedValues) const = 0;
+  virtual llvm::Value *
+  codegen(llvm::LLVMContext &context, llvm::IRBuilder<> &builder,
+          std::unique_ptr<llvm::Module> &llvmModule,
+          named_values_t &namedValues, function_protos_t &functionProtos,
+          std::unique_ptr<llvm::legacy::FunctionPassManager> &passes) = 0;
 };
 
 namespace expr {
@@ -43,8 +55,9 @@ public:
   virtual ~ExprInterface() {}
   virtual llvm::Value *codegen(llvm::LLVMContext &context,
                                llvm::IRBuilder<> &builder,
-                               std::shared_ptr<llvm::Module> llvmModule,
-                               named_values_t &namedValues) const = 0;
+                               std::unique_ptr<llvm::Module> &llvmModule,
+                               named_values_t &namedValues,
+                               function_protos_t &functionProtos) = 0;
 };
 
 class Number : public ExprInterface {
@@ -53,8 +66,9 @@ public:
 
   virtual llvm::Value *codegen(llvm::LLVMContext &context,
                                llvm::IRBuilder<> &builder,
-                               std::shared_ptr<llvm::Module> llvmModule,
-                               named_values_t &namedValues) const override;
+                               std::unique_ptr<llvm::Module> &llvmModule,
+                               named_values_t &namedValues,
+                               function_protos_t &functionProtos) override;
 
   friend std::ostream &operator<<(std::ostream &out, const Number &expr);
 
@@ -67,8 +81,9 @@ public:
 
   virtual llvm::Value *codegen(llvm::LLVMContext &context,
                                llvm::IRBuilder<> &builder,
-                               std::shared_ptr<llvm::Module> llvmModule,
-                               named_values_t &namedValues) const override;
+                               std::unique_ptr<llvm::Module> &llvmModule,
+                               named_values_t &namedValues,
+                               function_protos_t &functionProtos) override;
 
   friend std::ostream &operator<<(std::ostream &out, const Variable &var);
 
@@ -81,8 +96,9 @@ public:
 
   virtual llvm::Value *codegen(llvm::LLVMContext &context,
                                llvm::IRBuilder<> &builder,
-                               std::shared_ptr<llvm::Module> llvmModule,
-                               named_values_t &namedValues) const override;
+                               std::unique_ptr<llvm::Module> &llvmModule,
+                               named_values_t &namedValues,
+                               function_protos_t &functionProtos) override;
 
   char op;
   std::unique_ptr<ExprNode> lhs;
@@ -97,8 +113,9 @@ public:
 
   virtual llvm::Value *codegen(llvm::LLVMContext &context,
                                llvm::IRBuilder<> &builder,
-                               std::shared_ptr<llvm::Module> llvmModule,
-                               named_values_t &namedValues) const override;
+                               std::unique_ptr<llvm::Module> &llvmModule,
+                               named_values_t &namedValues,
+                               function_protos_t &functionProtos) override;
 
   std::string callee;
   std::vector<std::unique_ptr<ExprNode>> args;
@@ -107,14 +124,15 @@ public:
 };
 } // namespace expr
 
-class Prototype : public AstInterface {
+class Prototype : public expr::ExprInterface {
 public:
   Prototype(const std::string &name, std::vector<std::string> args);
 
   virtual llvm::Function *codegen(llvm::LLVMContext &context,
-                               llvm::IRBuilder<> &builder,
-                               std::shared_ptr<llvm::Module> llvmModule,
-                               named_values_t &namedValues) const override;
+                                  llvm::IRBuilder<> &builder,
+                                  std::unique_ptr<llvm::Module> &llvmModule,
+                                  named_values_t &namedValues,
+                                  function_protos_t &functionProtos) override;
 
   std::string name;
   std::vector<std::string> args;
@@ -125,10 +143,11 @@ public:
   Function(std::unique_ptr<Prototype> proto,
            std::unique_ptr<expr::ExprNode> body);
 
-  virtual llvm::Function *codegen(llvm::LLVMContext &context,
-                               llvm::IRBuilder<> &builder,
-                               std::shared_ptr<llvm::Module> llvmModule,
-                               named_values_t &namedValues) const override;
+  virtual llvm::Function *
+  codegen(llvm::LLVMContext &context, llvm::IRBuilder<> &builder,
+          std::unique_ptr<llvm::Module> &llvmModule,
+          named_values_t &namedValues, function_protos_t &functionProtos,
+          std::unique_ptr<llvm::legacy::FunctionPassManager> &passes) override;
 
   std::unique_ptr<Prototype> proto;
   std::unique_ptr<expr::ExprNode> body;

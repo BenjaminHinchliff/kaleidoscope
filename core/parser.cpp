@@ -1,7 +1,7 @@
 #include "parser.h"
 
 template <class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
-template <class... Ts> overloaded(Ts...)->overloaded<Ts...>;
+template <class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
 
 namespace parser {
 Parser::Parser() {}
@@ -9,8 +9,14 @@ Parser::Parser() {}
 std::unique_ptr<ast::AstNode> Parser::parse(lexer::Lexer &input) {
   tokens::Token next = input.peek();
   return std::visit(
-    overloaded{ [&](const tokens::Def&) { input.pop(); return parseDefinition(input); },
-                 [&](const tokens::Extern &) { input.pop(); return parseExtern(input); },
+      overloaded{[&](const tokens::Def &) {
+                   input.pop();
+                   return parseDefinition(input);
+                 },
+                 [&](const tokens::Extern &) {
+                   input.pop();
+                   return parseExtern(input);
+                 },
                  [&](const auto &) { return parseTopLevelExpr(input); }},
       next);
 }
@@ -99,7 +105,8 @@ std::unique_ptr<ast::expr::ExprNode> Parser::parseParen(lexer::Lexer &input) {
     return nullptr;
 
   auto top = input.peek();
-  if (auto token = std::get_if<tokens::Character>(&top); token && token->character != ')') {
+  if (auto token = std::get_if<tokens::Character>(&top);
+      token && token->character != ')') {
     throw std::runtime_error("unclosed parentheses!");
   }
   input.pop();
