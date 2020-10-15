@@ -42,15 +42,8 @@ int main() {
   llvm::InitializeNativeTargetAsmPrinter();
   llvm::InitializeNativeTargetAsmParser();
 
-  std::string source{"def plustwo(x) x + 2; plustwo(2);"};
-  std::stringstream sourceStream{source};
-
-  lexer::Lexer lexer{sourceStream};
-
-  parser::Parser parser{};
-
   llvm::LLVMContext context;
-  llvm::IRBuilder<> builder(context);
+  llvm::IRBuilder<> builder{context};
   ast::named_values_t namedValues;
   ast::function_protos_t functionProtos;
 
@@ -58,37 +51,54 @@ int main() {
   auto llvmModule = makeModule(context, jit);
   auto passes = makeFunctionPasses(llvmModule);
 
-  while (!std::holds_alternative<tokens::Eof>(lexer.peek())) {
-    auto ast = parser.parse(lexer);
-    auto fnIR = std::visit(
-        overloaded{[&](ast::Prototype &ast) {
-                     return ast.codegen(context, builder, llvmModule,
-                                        namedValues, functionProtos);
-                   },
-                   [&](ast::Function &ast) {
-                     return ast.codegen(context, builder, llvmModule,
-                                        namedValues, functionProtos, passes);
-                   }},
-        *ast);
-    auto end = std::get<tokens::Character>(lexer.pop());
-    if (end.character != ';') {
-      std::cerr << "each expression must end with semicolon!";
-      return 1;
-    }
+  parser::Parser parser{};
 
-    std::cout << "Partial:\n";
-    fnIR->print(llvm::outs(), nullptr);
+  while (true) {
+    std::cout << "ready> ";
+    std::string source;
+    std::getline(std::cin, source);
+    std::stringstream sourceStream(source);
+    lexer::Lexer lexer{sourceStream};
 
-    auto modHandle = jit->addModule(std::move(llvmModule));
-    llvmModule = makeModule(context, jit);
-    passes = makeFunctionPasses(llvmModule);
+    while (!std::holds_alternative<tokens::Eof>(lexer.peek())) {
+      auto ast = parser.parse(lexer);
+      auto fnIR = std::visit(
+          overloaded{[&](ast::Prototype &ast) {
+                       return ast.codegen(context, builder, llvmModule,
+                                          namedValues, functionProtos);
+                     },
+                     [&](ast::Function &ast) {
+                       return ast.codegen(context, builder, llvmModule,
+                                          namedValues, functionProtos, passes);
+                     }},
+          *ast);
+      try
+      {
+        auto end = std::get<tokens::Character>(lexer.pop());
+        if (end.character != ';') {
+          throw std::runtime_error("no end semicolon");
+        }
+      }
+      catch (const std::exception& e)
+      {
+        std::cerr << "each expression must end with semicolon!\n";
+        continue;
+      }
 
-    auto exprSymbol = jit->findSymbol("__anon_expr");
-    if (exprSymbol) {
-      double (*fP)() =
-          (double (*)())(intptr_t)llvm::cantFail(exprSymbol.getAddress());
-      std::cout << "Evaluated to " << fP() << '\n';
-      jit->removeModule(modHandle);
+      std::cout << "IR:\n";
+      fnIR->print(llvm::outs(), nullptr);
+
+      auto modHandle = jit->addModule(std::move(llvmModule));
+      llvmModule = makeModule(context, jit);
+      passes = makeFunctionPasses(llvmModule);
+
+      auto exprSymbol = jit->findSymbol("__anon_expr");
+      if (exprSymbol) {
+        double (*fP)() =
+            (double (*)())(intptr_t)llvm::cantFail(exprSymbol.getAddress());
+        std::cout << "Eval:\n" << fP() << '\n';
+        jit->removeModule(modHandle);
+      }
     }
   }
 
