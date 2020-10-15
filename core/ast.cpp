@@ -145,8 +145,8 @@ std::ostream &operator<<(std::ostream &out, const Call &call) {
 }
 } // namespace expr
 
-Prototype::Prototype(const std::string &name, std::vector<std::string> args)
-    : name(name), args(std::move(args)) {}
+Prototype::Prototype(const std::string &name, std::vector<std::string> args, bool isExtern)
+    : name(name), args(std::move(args)), isExtern(isExtern) {}
 
 llvm::Function *Prototype::codegen(llvm::LLVMContext &context,
                                    llvm::IRBuilder<> &builder,
@@ -165,6 +165,11 @@ llvm::Function *Prototype::codegen(llvm::LLVMContext &context,
   size_t i = 0;
   for (auto &arg : f->args()) {
     arg.setName(args[i++]);
+  }
+
+  if (isExtern)
+  {
+    functionProtos[name] = std::make_unique<Prototype>(*this);
   }
 
   return f;

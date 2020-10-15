@@ -124,18 +124,19 @@ public:
 };
 } // namespace expr
 
-class Prototype : public expr::ExprInterface {
+class Prototype {
 public:
-  Prototype(const std::string &name, std::vector<std::string> args);
+  Prototype(const std::string& name, std::vector<std::string> args, bool isExtern = false);
 
-  virtual llvm::Function *codegen(llvm::LLVMContext &context,
+  llvm::Function *codegen(llvm::LLVMContext &context,
                                   llvm::IRBuilder<> &builder,
                                   std::unique_ptr<llvm::Module> &llvmModule,
                                   named_values_t &namedValues,
-                                  function_protos_t &functionProtos) override;
+                                  function_protos_t &functionProtos);
 
   std::string name;
   std::vector<std::string> args;
+  bool isExtern;
 };
 
 class Function : public AstInterface {

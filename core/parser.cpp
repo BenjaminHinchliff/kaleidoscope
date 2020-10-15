@@ -214,6 +214,7 @@ int Parser::getOpPrecedence(tokens::Token token) {
 
 std::unique_ptr<ast::AstNode> Parser::parseExtern(lexer::Lexer &input) {
   auto proto = *parsePrototype(input);
+  proto.isExtern = true;
   return std::make_unique<ast::AstNode>(proto);
 }
 
