@@ -19,7 +19,16 @@
 #include "llvm/IR/Verifier.h"
 
 namespace ast {
-class AstInterface {};
+using named_values_t = std::unordered_map<std::string, llvm::Value *>;
+
+class AstInterface {
+public:
+  virtual ~AstInterface() {}
+  virtual llvm::Value *codegen(llvm::LLVMContext &context,
+                               llvm::IRBuilder<> &builder,
+                               std::shared_ptr<llvm::Module> llvmModule,
+                               named_values_t &namedValues) const = 0;
+};
 
 namespace expr {
 class Number;
@@ -29,17 +38,13 @@ class Call;
 
 using ExprNode = std::variant<Number, Variable, Binary, Call>;
 
-using named_values_t = std::unordered_map<std::string, llvm::Value *>;
-
-class ExprInterface : public AstInterface {
+class ExprInterface {
 public:
   virtual ~ExprInterface() {}
   virtual llvm::Value *codegen(llvm::LLVMContext &context,
                                llvm::IRBuilder<> &builder,
                                std::shared_ptr<llvm::Module> llvmModule,
-                               named_values_t &namedValues) const {
-    return nullptr;
-  };
+                               named_values_t &namedValues) const = 0;
 };
 
 class Number : public ExprInterface {
@@ -72,8 +77,7 @@ public:
 
 class Binary : public ExprInterface {
 public:
-  Binary(char op, std::unique_ptr<ExprNode> lhs,
-         std::unique_ptr<ExprNode> rhs);
+  Binary(char op, std::unique_ptr<ExprNode> lhs, std::unique_ptr<ExprNode> rhs);
 
   virtual llvm::Value *codegen(llvm::LLVMContext &context,
                                llvm::IRBuilder<> &builder,
@@ -107,6 +111,11 @@ class Prototype : public AstInterface {
 public:
   Prototype(const std::string &name, std::vector<std::string> args);
 
+  virtual llvm::Function *codegen(llvm::LLVMContext &context,
+                               llvm::IRBuilder<> &builder,
+                               std::shared_ptr<llvm::Module> llvmModule,
+                               named_values_t &namedValues) const override;
+
   std::string name;
   std::vector<std::string> args;
 };
@@ -115,6 +124,11 @@ class Function : public AstInterface {
 public:
   Function(std::unique_ptr<Prototype> proto,
            std::unique_ptr<expr::ExprNode> body);
+
+  virtual llvm::Function *codegen(llvm::LLVMContext &context,
+                               llvm::IRBuilder<> &builder,
+                               std::shared_ptr<llvm::Module> llvmModule,
+                               named_values_t &namedValues) const override;
 
   std::unique_ptr<Prototype> proto;
   std::unique_ptr<expr::ExprNode> body;

@@ -29,6 +29,10 @@ tokens::Token Lexer::pop() {
   return front;
 }
 
+bool Lexer::empty() const noexcept {
+  return tokens.empty();
+}
+
 tokens::Token Lexer::extractToken(std::istream &input) {
   char next;
   input >> std::skipws >> next;

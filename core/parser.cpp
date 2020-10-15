@@ -7,10 +7,10 @@ namespace parser {
 Parser::Parser() {}
 
 std::unique_ptr<ast::AstNode> Parser::parse(lexer::Lexer &input) {
-  tokens::Token next = input.pop();
+  tokens::Token next = input.peek();
   return std::visit(
-      overloaded{[&](const tokens::Def &) { return parseDefinition(input); },
-                 [&](const tokens::Extern &) { return parseExtern(input); },
+    overloaded{ [&](const tokens::Def&) { input.pop(); return parseDefinition(input); },
+                 [&](const tokens::Extern &) { input.pop(); return parseExtern(input); },
                  [&](const auto &) { return parseTopLevelExpr(input); }},
       next);
 }

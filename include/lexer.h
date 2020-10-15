@@ -14,6 +14,7 @@ public:
 
   tokens::Token peek(size_t forward = 0ull) const;
   tokens::Token pop();
+  bool empty() const noexcept;
 
 private:
   std::list<tokens::Token> tokens;

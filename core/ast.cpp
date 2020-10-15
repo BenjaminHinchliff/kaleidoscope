@@ -85,8 +85,32 @@ llvm::Value *Call::codegen(llvm::LLVMContext &context,
                            llvm::IRBuilder<> &builder,
                            std::shared_ptr<llvm::Module> llvmModule,
                            named_values_t &namedValues) const {
-  // Function* calleeF = llvmModule->getFunction(callee);
-  return nullptr;
+  llvm::Function *calleeF = llvmModule->getFunction(callee);
+  if (!calleeF) {
+    throw std::runtime_error("Unknown function referenced");
+  }
+
+  if (calleeF->arg_size() != args.size()) {
+    throw std::runtime_error("Incorrect # arguments passed");
+  }
+
+  std::vector<llvm::Value *> argsV;
+  std::transform(args.begin(), args.end(), std::back_inserter(argsV),
+                 [&](const std::unique_ptr<ExprNode> &arg) {
+                   return std::visit(
+                       [&](const auto &node) {
+                         return node.codegen(context, builder, llvmModule,
+                                             namedValues);
+                       },
+                       *arg);
+                 });
+
+  for (const auto& arg : argsV)
+  {
+    std::cout << arg->getName().str() << '\n';;
+  }
+
+  return builder.CreateCall(calleeF, argsV, "calltmp");
 }
 
 std::ostream &operator<<(std::ostream &out, const Call &call) {
@@ -98,7 +122,71 @@ std::ostream &operator<<(std::ostream &out, const Call &call) {
 Prototype::Prototype(const std::string &name, std::vector<std::string> args)
     : name(name), args(std::move(args)) {}
 
+llvm::Function *Prototype::codegen(llvm::LLVMContext &context,
+                                   llvm::IRBuilder<> &builder,
+                                   std::shared_ptr<llvm::Module> llvmModule,
+                                   named_values_t &namedValues) const {
+  std::vector<llvm::Type *> doubles(args.size(),
+                                    llvm::Type::getDoubleTy(context));
+
+  llvm::FunctionType *fT =
+      llvm::FunctionType::get(llvm::Type::getDoubleTy(context), doubles, false);
+
+  llvm::Function *f = llvm::Function::Create(
+      fT, llvm::Function::ExternalLinkage, name, llvmModule.get());
+
+  size_t i = 0;
+  for (auto &arg : f->args()) {
+    arg.setName(args[i++]);
+  }
+
+  return f;
+}
+
 Function::Function(std::unique_ptr<Prototype> proto,
                    std::unique_ptr<expr::ExprNode> body)
     : proto(std::move(proto)), body(std::move(body)) {}
+
+llvm::Function *Function::codegen(llvm::LLVMContext &context,
+                                  llvm::IRBuilder<> &builder,
+                                  std::shared_ptr<llvm::Module> llvmModule,
+                                  named_values_t &namedValues) const {
+  llvm::Function *function = llvmModule->getFunction(proto->name);
+
+  if (!function) {
+    function = proto->codegen(context, builder, llvmModule, namedValues);
+  }
+
+  if (!function)
+  {
+    throw std::runtime_error("failed to generate function prototype");
+  }
+
+  if (!function->empty())
+  {
+    throw std::runtime_error("Function cannot be redefined");
+  }
+
+  llvm::BasicBlock* bB = llvm::BasicBlock::Create(context, "entry", function);
+  builder.SetInsertPoint(bB);
+
+  namedValues.clear();
+  for (auto& arg : function->args())
+  {
+    namedValues[arg.getName().str()] = &arg;
+  }
+
+  try
+  {
+    llvm::Value* retVal = std::visit([&](const auto& ret) { return ret.codegen(context, builder, llvmModule, namedValues); }, *body);
+    builder.CreateRet(retVal);
+    llvm::verifyFunction(*function);
+    return function;
+  }
+  catch (const std::exception& e)
+  {
+    function->eraseFromParent();
+    throw e;
+  }
+}
 } // namespace ast
