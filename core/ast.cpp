@@ -183,8 +183,7 @@ llvm::Function *
 Function::codegen(llvm::LLVMContext &context, llvm::IRBuilder<> &builder,
                   std::unique_ptr<llvm::Module> &llvmModule,
                   named_values_t &namedValues,
-                  function_protos_t &functionProtos,
-                  std::unique_ptr<llvm::legacy::FunctionPassManager> &passes) {
+                  function_protos_t &functionProtos) {
   auto &p = *proto;
   functionProtos[proto->name] = std::move(proto);
 
@@ -215,7 +214,6 @@ Function::codegen(llvm::LLVMContext &context, llvm::IRBuilder<> &builder,
         *body);
     builder.CreateRet(retVal);
     llvm::verifyFunction(*function);
-    passes->run(*function);
     return function;
   } catch (const std::exception &e) {
     function->eraseFromParent();

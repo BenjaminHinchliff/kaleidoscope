@@ -14,21 +14,7 @@
 template <class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
 template <class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
 
-using pass_manager_ptr = std::unique_ptr<llvm::legacy::FunctionPassManager>;
 using jit_ptr = std::unique_ptr<llvm::orc::KaleidoscopeJIT>;
-
-pass_manager_ptr
-makeFunctionPasses(const std::unique_ptr<llvm::Module> &llvmModule) {
-  auto fpm =
-      std::make_unique<llvm::legacy::FunctionPassManager>(llvmModule.get());
-  fpm->add(llvm::createInstructionCombiningPass());
-  fpm->add(llvm::createReassociatePass());
-  fpm->add(llvm::createGVNPass());
-  fpm->add(llvm::createCFGSimplificationPass());
-
-  fpm->doInitialization();
-  return fpm;
-}
 
 std::unique_ptr<llvm::Module> makeModule(llvm::LLVMContext &context,
                                          const jit_ptr &jit) {
@@ -49,7 +35,6 @@ int main() {
 
   auto jit = std::make_unique<llvm::orc::KaleidoscopeJIT>();
   auto llvmModule = makeModule(context, jit);
-  auto passes = makeFunctionPasses(llvmModule);
 
   parser::Parser parser{};
 
@@ -69,7 +54,7 @@ int main() {
                      },
                      [&](ast::Function &ast) {
                        return ast.codegen(context, builder, llvmModule,
-                                          namedValues, functionProtos, passes);
+                                          namedValues, functionProtos);
                      }},
           *ast);
       try
@@ -90,7 +75,6 @@ int main() {
 
       auto modHandle = jit->addModule(std::move(llvmModule));
       llvmModule = makeModule(context, jit);
-      passes = makeFunctionPasses(llvmModule);
 
       auto exprSymbol = jit->findSymbol("__anon_expr");
       if (exprSymbol) {

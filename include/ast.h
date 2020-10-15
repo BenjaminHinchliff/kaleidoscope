@@ -32,16 +32,6 @@ getFunction(llvm::LLVMContext &context, llvm::IRBuilder<> &builder,
             named_values_t &namedValues, function_protos_t &functionProtos,
             std::unique_ptr<llvm::legacy::FunctionPassManager> &passes);
 
-class AstInterface {
-public:
-  virtual ~AstInterface() {}
-  virtual llvm::Value *
-  codegen(llvm::LLVMContext &context, llvm::IRBuilder<> &builder,
-          std::unique_ptr<llvm::Module> &llvmModule,
-          named_values_t &namedValues, function_protos_t &functionProtos,
-          std::unique_ptr<llvm::legacy::FunctionPassManager> &passes) = 0;
-};
-
 namespace expr {
 class Number;
 class Variable;
@@ -126,29 +116,30 @@ public:
 
 class Prototype {
 public:
-  Prototype(const std::string& name, std::vector<std::string> args, bool isExtern = false);
+  Prototype(const std::string &name, std::vector<std::string> args,
+            bool isExtern = false);
 
   llvm::Function *codegen(llvm::LLVMContext &context,
-                                  llvm::IRBuilder<> &builder,
-                                  std::unique_ptr<llvm::Module> &llvmModule,
-                                  named_values_t &namedValues,
-                                  function_protos_t &functionProtos);
+                          llvm::IRBuilder<> &builder,
+                          std::unique_ptr<llvm::Module> &llvmModule,
+                          named_values_t &namedValues,
+                          function_protos_t &functionProtos);
 
   std::string name;
   std::vector<std::string> args;
   bool isExtern;
 };
 
-class Function : public AstInterface {
+class Function {
 public:
   Function(std::unique_ptr<Prototype> proto,
            std::unique_ptr<expr::ExprNode> body);
 
-  virtual llvm::Function *
-  codegen(llvm::LLVMContext &context, llvm::IRBuilder<> &builder,
-          std::unique_ptr<llvm::Module> &llvmModule,
-          named_values_t &namedValues, function_protos_t &functionProtos,
-          std::unique_ptr<llvm::legacy::FunctionPassManager> &passes) override;
+  llvm::Function *codegen(llvm::LLVMContext &context,
+                                  llvm::IRBuilder<> &builder,
+                                  std::unique_ptr<llvm::Module> &llvmModule,
+                                  named_values_t &namedValues,
+                                  function_protos_t &functionProtos);
 
   std::unique_ptr<Prototype> proto;
   std::unique_ptr<expr::ExprNode> body;
