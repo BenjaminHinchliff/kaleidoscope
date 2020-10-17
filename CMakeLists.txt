@@ -8,6 +8,9 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 # core library
 add_subdirectory("core")
-enable_testing()
-add_subdirectory("test")
 add_subdirectory("jit")
+find_package(GTest)
+if(${GTEST_FOUND})
+	enable_testing()
+	add_subdirectory("test")
+endif()
