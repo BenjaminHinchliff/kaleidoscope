@@ -4,6 +4,7 @@
 #include <cctype>
 #include <list>
 #include <string>
+#include <limits>
 
 #include "tokens.h"
 

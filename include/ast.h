@@ -5,6 +5,7 @@
 #include <memory>
 #include <variant>
 #include <vector>
+#include <unordered_map>
 
 #include "llvm/ADT/APFloat.h"
 #include "llvm/ADT/STLExtras.h"
