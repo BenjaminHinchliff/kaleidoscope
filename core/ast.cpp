@@ -145,7 +145,8 @@ std::ostream &operator<<(std::ostream &out, const Call &call) {
 }
 } // namespace expr
 
-Prototype::Prototype(const std::string &name, std::vector<std::string> args, bool isExtern)
+Prototype::Prototype(const std::string &name, std::vector<std::string> args,
+                     bool isExtern)
     : name(name), args(std::move(args)), isExtern(isExtern) {}
 
 llvm::Function *Prototype::codegen(llvm::LLVMContext &context,
@@ -167,8 +168,7 @@ llvm::Function *Prototype::codegen(llvm::LLVMContext &context,
     arg.setName(args[i++]);
   }
 
-  if (isExtern)
-  {
+  if (isExtern) {
     functionProtos[name] = std::make_unique<Prototype>(*this);
   }
 
@@ -179,11 +179,11 @@ Function::Function(std::unique_ptr<Prototype> proto,
                    std::unique_ptr<expr::ExprNode> body)
     : proto(std::move(proto)), body(std::move(body)) {}
 
-llvm::Function *
-Function::codegen(llvm::LLVMContext &context, llvm::IRBuilder<> &builder,
-                  std::unique_ptr<llvm::Module> &llvmModule,
-                  named_values_t &namedValues,
-                  function_protos_t &functionProtos) {
+llvm::Function *Function::codegen(llvm::LLVMContext &context,
+                                  llvm::IRBuilder<> &builder,
+                                  std::unique_ptr<llvm::Module> &llvmModule,
+                                  named_values_t &namedValues,
+                                  function_protos_t &functionProtos) {
   auto &p = *proto;
   functionProtos[proto->name] = std::move(proto);
 
