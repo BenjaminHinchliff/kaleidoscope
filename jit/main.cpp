@@ -39,50 +39,51 @@ int main() {
   parser::Parser parser{};
 
   while (true) {
-    std::cout << "ready> ";
-    std::string source;
-    std::getline(std::cin, source);
-    std::stringstream sourceStream(source);
-    lexer::Lexer lexer{sourceStream};
+    try {
+      std::cout << "ready> ";
+      std::string source;
+      std::getline(std::cin, source);
+      std::stringstream sourceStream(source);
+      lexer::Lexer lexer{sourceStream};
 
-    while (!std::holds_alternative<tokens::Eof>(lexer.peek())) {
-      auto ast = parser.parse(lexer);
-      auto fnIR = std::visit(
-          overloaded{[&](ast::Prototype &ast) {
-                       return ast.codegen(context, builder, llvmModule,
-                                          namedValues, functionProtos);
-                     },
-                     [&](ast::Function &ast) {
-                       return ast.codegen(context, builder, llvmModule,
-                                          namedValues, functionProtos);
-                     }},
-          *ast);
-      try
-      {
-        auto end = std::get<tokens::Character>(lexer.pop());
-        if (end.character != ';') {
-          throw std::runtime_error("no end semicolon");
+      while (!std::holds_alternative<tokens::Eof>(lexer.peek())) {
+        auto ast = parser.parse(lexer);
+        auto fnIR = std::visit(
+            overloaded{[&](ast::Prototype &ast) {
+                         return ast.codegen(context, builder, llvmModule,
+                                            namedValues, functionProtos);
+                       },
+                       [&](ast::Function &ast) {
+                         return ast.codegen(context, builder, llvmModule,
+                                            namedValues, functionProtos);
+                       }},
+            *ast);
+        try {
+          auto end = std::get<tokens::Character>(lexer.pop());
+          if (end.character != ';') {
+            throw std::runtime_error("no end semicolon");
+          }
+        } catch (const std::exception &e) {
+          std::cerr << "each expression must end with semicolon!\n";
+          continue;
+        }
+
+        std::cout << "IR:\n";
+        fnIR->print(llvm::outs(), nullptr);
+
+        auto modHandle = jit->addModule(std::move(llvmModule));
+        llvmModule = makeModule(context, jit);
+
+        auto exprSymbol = jit->findSymbol("__anon_expr");
+        if (exprSymbol) {
+          double (*fP)() =
+              (double (*)())(intptr_t)llvm::cantFail(exprSymbol.getAddress());
+          std::cout << "Eval:\n" << fP() << '\n';
+          jit->removeModule(modHandle);
         }
       }
-      catch (const std::exception& e)
-      {
-        std::cerr << "each expression must end with semicolon!\n";
-        continue;
-      }
-
-      std::cout << "IR:\n";
-      fnIR->print(llvm::outs(), nullptr);
-
-      auto modHandle = jit->addModule(std::move(llvmModule));
-      llvmModule = makeModule(context, jit);
-
-      auto exprSymbol = jit->findSymbol("__anon_expr");
-      if (exprSymbol) {
-        double (*fP)() =
-            (double (*)())(intptr_t)llvm::cantFail(exprSymbol.getAddress());
-        std::cout << "Eval:\n" << fP() << '\n';
-        jit->removeModule(modHandle);
-      }
+    } catch (const std::exception &e) {
+      std::cerr << e.what() << '\n';
     }
   }
 
