@@ -1,6 +1,4 @@
-﻿cmake_minimum_required(VERSION 3.8)
-
-add_library(Kaleidoscope "lexer.cpp" "tokens.cpp" "ast.cpp" "parser.cpp")
+﻿add_library(Kaleidoscope "lexer.cpp" "tokens.cpp" "ast.cpp" "parser.cpp")
 
 target_include_directories(Kaleidoscope PUBLIC "../include")
 
