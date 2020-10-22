@@ -1,4 +1,4 @@
-#include "lexer.h"
+#include "lexer.hpp"
 
 namespace {
 bool isDecimal(char c) { return std::isdigit(c) || c == '.'; }

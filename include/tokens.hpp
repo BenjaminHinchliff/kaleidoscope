@@ -1,5 +1,5 @@
-#ifndef TOKENS_H_
-#define TOKENS_H_
+#ifndef TOKENS_TOKENS_HPP_
+#define TOKENS_TOKENS_HPP_
 
 #include <iostream>
 #include <variant>
@@ -65,4 +65,4 @@ public:
 using Token = std::variant<Def, Extern, Identifier, Number, Character, Eof>;
 } // namespace tokens
 
-#endif // !TOKENS_H_
+#endif // !TOKENS_TOKENS_HPP_

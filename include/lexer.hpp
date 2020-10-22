@@ -1,12 +1,12 @@
-#ifndef LEXER_H_
-#define LEXER_H_
+#ifndef LEXER_LEXER_HPP_
+#define LEXER_LEXER_HPP_
 
 #include <cctype>
 #include <list>
 #include <string>
 #include <limits>
 
-#include "tokens.h"
+#include "tokens.hpp"
 
 namespace lexer {
 class Lexer {
@@ -24,4 +24,4 @@ private:
 };
 } // namespace lexer
 
-#endif // !LEXER_H_
+#endif // !LEXER_LEXER_HPP_

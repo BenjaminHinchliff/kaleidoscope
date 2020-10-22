@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "lexer.h"
+#include "lexer.hpp"
 
 TEST(Lexer, PeekWorks) {
   std::string testInput{"12 34"};

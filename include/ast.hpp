@@ -1,5 +1,5 @@
-#ifndef AST_H_
-#define AST_H_
+#ifndef AST_AST_HPP_
+#define AST_AST_HPP_
 
 #include <iostream>
 #include <memory>
@@ -149,4 +149,4 @@ public:
 using AstNode = std::variant<Prototype, Function>;
 } // namespace ast
 
-#endif // !AST_H_
+#endif // !AST_AST_HPP_

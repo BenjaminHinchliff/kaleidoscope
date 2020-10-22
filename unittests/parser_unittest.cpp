@@ -2,8 +2,8 @@
 
 #include <vector>
 
-#include "lexer.h"
-#include "parser.h"
+#include "lexer.hpp"
+#include "parser.hpp"
 
 TEST(Parser, BinOpParsingWorks) {
   std::string input{"1 + 2 * 3 - 4"};

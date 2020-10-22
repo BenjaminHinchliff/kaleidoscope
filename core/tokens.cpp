@@ -1,4 +1,4 @@
-#include "tokens.h"
+#include "tokens.hpp"
 
 namespace tokens {
 bool Eof::operator==(const Eof &other) const noexcept { return true; }

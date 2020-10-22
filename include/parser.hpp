@@ -1,12 +1,12 @@
-#ifndef PARSER_H_
-#define PARSER_H_
+#ifndef PARSER_PARSER_HPP_
+#define PARSER_PARSER_HPP_
 
 #include <memory>
 #include <unordered_map>
 
-#include "ast.h"
-#include "lexer.h"
-#include "tokens.h"
+#include "ast.hpp"
+#include "lexer.hpp"
+#include "tokens.hpp"
 
 namespace parser {
 class Parser {
@@ -42,4 +42,4 @@ public:
 };
 } // namespace parser
 
-#endif // !PARSER_H_
+#endif // !PARSER_PARSER_HPP_
