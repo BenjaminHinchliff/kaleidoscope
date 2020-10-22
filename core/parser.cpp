@@ -6,9 +6,9 @@ template <class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
 namespace parser {
 Parser::Parser() {}
 
-std::unique_ptr<ast::AstNode> Parser::parse(lexer::Lexer &input) {
+std::unique_ptr<ast::AstNode> Parser::parse(lexer::Lexer &input) const {
   tokens::Token next = input.peek();
-  return std::visit(
+  auto ret = std::visit(
       overloaded{[&](const tokens::Def &) {
                    input.pop();
                    return parseDefinition(input);
@@ -19,10 +19,19 @@ std::unique_ptr<ast::AstNode> Parser::parse(lexer::Lexer &input) {
                  },
                  [&](const auto &) { return parseTopLevelExpr(input); }},
       next);
+  try {
+    auto end = std::get<tokens::Character>(input.pop());
+    if (end.character != ';') {
+      throw std::runtime_error("no end semicolon");
+    }
+  } catch (const std::bad_variant_access &e) {
+    throw std::runtime_error("invalid end character");
+  }
+  return ret;
 }
 
 std::unique_ptr<ast::expr::ExprNode>
-Parser::parseExpression(lexer::Lexer &input) {
+Parser::parseExpression(lexer::Lexer &input) const {
   auto token = input.pop();
   auto lhs = parsePrimary(token, input);
   if (!lhs) {
@@ -36,7 +45,8 @@ Parser::parseExpression(lexer::Lexer &input) {
   return lhs;
 }
 
-std::unique_ptr<ast::Prototype> Parser::parsePrototype(lexer::Lexer &input) {
+std::unique_ptr<ast::Prototype>
+Parser::parsePrototype(lexer::Lexer &input) const {
   auto next = input.pop();
   std::string fnName;
   try {
@@ -75,7 +85,7 @@ std::unique_ptr<ast::Prototype> Parser::parsePrototype(lexer::Lexer &input) {
 }
 
 std::unique_ptr<ast::expr::ExprNode>
-Parser::parsePrimary(const tokens::Token &token, lexer::Lexer &input) {
+Parser::parsePrimary(const tokens::Token &token, lexer::Lexer &input) const {
   return std::visit(
       overloaded{
           [&](const tokens::Identifier &ident) {
@@ -89,7 +99,8 @@ Parser::parsePrimary(const tokens::Token &token, lexer::Lexer &input) {
       token);
 }
 
-std::unique_ptr<ast::AstNode> Parser::parseTopLevelExpr(lexer::Lexer &input) {
+std::unique_ptr<ast::AstNode>
+Parser::parseTopLevelExpr(lexer::Lexer &input) const {
   if (auto E = parseExpression(input)) {
     auto proto = std::make_unique<ast::Prototype>("__anon_expr",
                                                   std::vector<std::string>{});
@@ -99,7 +110,8 @@ std::unique_ptr<ast::AstNode> Parser::parseTopLevelExpr(lexer::Lexer &input) {
   return nullptr;
 }
 
-std::unique_ptr<ast::expr::ExprNode> Parser::parseParen(lexer::Lexer &input) {
+std::unique_ptr<ast::expr::ExprNode>
+Parser::parseParen(lexer::Lexer &input) const {
   auto v = parseExpression(input);
   if (!v)
     return nullptr;
@@ -114,7 +126,8 @@ std::unique_ptr<ast::expr::ExprNode> Parser::parseParen(lexer::Lexer &input) {
 }
 
 std::unique_ptr<ast::expr::ExprNode>
-Parser::parseIdentifier(const tokens::Identifier &ident, lexer::Lexer &input) {
+Parser::parseIdentifier(const tokens::Identifier &ident,
+                        lexer::Lexer &input) const {
   std::string idName = ident.ident;
 
   if (!(input.peek() == tokens::Token{tokens::Character{L'('}})) {
@@ -155,14 +168,14 @@ Parser::parseIdentifier(const tokens::Identifier &ident, lexer::Lexer &input) {
 }
 
 std::unique_ptr<ast::expr::ExprNode>
-Parser::parseNumber(const tokens::Number &number) {
+Parser::parseNumber(const tokens::Number &number) const {
   auto expr = std::make_unique<ast::expr::ExprNode>(number.val);
   return std::move(expr);
 }
 
 std::unique_ptr<ast::expr::ExprNode>
 Parser::parseBinOpRhs(int exprPrec, std::unique_ptr<ast::expr::ExprNode> lhs,
-                      tokens::Token &op, lexer::Lexer &input) {
+                      tokens::Token &op, lexer::Lexer &input) const {
   while (true) {
     int tokPrec = getOpPrecedence(op);
 
@@ -199,7 +212,7 @@ Parser::parseBinOpRhs(int exprPrec, std::unique_ptr<ast::expr::ExprNode> lhs,
   }
 }
 
-int Parser::getOpPrecedence(tokens::Token token) {
+int Parser::getOpPrecedence(tokens::Token token) const {
   if (!std::holds_alternative<tokens::Character>(token)) {
     return -1;
   }
@@ -212,13 +225,14 @@ int Parser::getOpPrecedence(tokens::Token token) {
   return search->second;
 }
 
-std::unique_ptr<ast::AstNode> Parser::parseExtern(lexer::Lexer &input) {
+std::unique_ptr<ast::AstNode> Parser::parseExtern(lexer::Lexer &input) const {
   auto proto = *parsePrototype(input);
   proto.isExtern = true;
   return std::make_unique<ast::AstNode>(proto);
 }
 
-std::unique_ptr<ast::AstNode> Parser::parseDefinition(lexer::Lexer &input) {
+std::unique_ptr<ast::AstNode>
+Parser::parseDefinition(lexer::Lexer &input) const {
   auto proto = parsePrototype(input);
   if (!proto)
     return nullptr;
@@ -230,7 +244,7 @@ std::unique_ptr<ast::AstNode> Parser::parseDefinition(lexer::Lexer &input) {
 }
 
 void Parser::assertIsCharacter(const tokens::Token &tkn, char target,
-                               const std::string &error) {
+                               const std::string &error) const {
   using namespace std::string_literals;
   try {
     wchar_t c = std::get<tokens::Character>(tkn).character;
