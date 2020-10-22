@@ -1,3 +1,3 @@
-add_executable(KaleidoscopeJIT "main.cpp")
+add_executable(kjit "jit.cpp")
 
-target_link_libraries(KaleidoscopeJIT PUBLIC Kaleidoscope)
+target_link_libraries(kjit PUBLIC Kaleidoscope)
