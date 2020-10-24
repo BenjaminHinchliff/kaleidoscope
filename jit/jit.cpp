@@ -5,7 +5,7 @@
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Target/TargetMachine.h"
 
-#include "KaleidoscopeJIT.h"
+#include "kaleidoscope_jit.hpp"
 #include "parser.hpp"
 
 template <class... Ts> struct overloaded : Ts... { using Ts::operator()...; };

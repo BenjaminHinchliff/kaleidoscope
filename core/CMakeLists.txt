@@ -1,4 +1,12 @@
-﻿add_library(Kaleidoscope "lexer.cpp" "tokens.cpp" "ast.cpp" "parser.cpp")
+﻿set(CORE_SRCS
+	"lexer.cpp"
+	"tokens.cpp"
+	"ast.cpp"
+	"parser.cpp"
+	"kaleidoscope_jit.cpp")
+
+add_library(Kaleidoscope ${CORE_SRCS})
+mark_as_advanced(CORE_SRCS)
 
 target_include_directories(Kaleidoscope PUBLIC "../include")
 
