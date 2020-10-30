@@ -4,35 +4,35 @@ namespace llvm {
 namespace orc {
 
 KaleidoscopeJIT::KaleidoscopeJIT()
-    : Resolver(createLegacyLookupResolver(
-          ES,
+    : resolver(createLegacyLookupResolver(
+          es,
           [this](StringRef Name) {
             return findMangledSymbol(std::string(Name));
           },
           [](Error Err) { cantFail(std::move(Err), "lookupFlags failed"); })),
-      TM(EngineBuilder().selectTarget()), DL(TM->createDataLayout()),
-      ObjectLayer(AcknowledgeORCv1Deprecation, ES,
+      tm(EngineBuilder().selectTarget()), dl(tm->createDataLayout()),
+      objectLayer(AcknowledgeORCv1Deprecation, es,
                   [this](VModuleKey) {
                     return ObjLayerT::Resources{
-                        std::make_shared<SectionMemoryManager>(), Resolver};
+                        std::make_shared<SectionMemoryManager>(), resolver};
                   }),
-      CompileLayer(AcknowledgeORCv1Deprecation, ObjectLayer,
-                   SimpleCompiler(*TM)) {
+      compileLayer(AcknowledgeORCv1Deprecation, objectLayer,
+                   SimpleCompiler(*tm)) {
   llvm::sys::DynamicLibrary::LoadLibraryPermanently(nullptr);
 }
 
-TargetMachine &KaleidoscopeJIT::getTargetMachine() { return *TM; }
+TargetMachine &KaleidoscopeJIT::getTargetMachine() { return *tm; }
 
 VModuleKey KaleidoscopeJIT::addModule(std::unique_ptr<Module> M) {
-  auto K = ES.allocateVModule();
-  cantFail(CompileLayer.addModule(K, std::move(M)));
-  ModuleKeys.push_back(K);
+  auto K = es.allocateVModule();
+  cantFail(compileLayer.addModule(K, std::move(M)));
+  moduleKeys.push_back(K);
   return K;
 }
 
 void KaleidoscopeJIT::removeModule(VModuleKey K) {
-  ModuleKeys.erase(find(ModuleKeys, K));
-  cantFail(CompileLayer.removeModule(K));
+  moduleKeys.erase(find(moduleKeys, K));
+  cantFail(compileLayer.removeModule(K));
 }
 
 JITSymbol KaleidoscopeJIT::findSymbol(const std::string Name) {
@@ -43,7 +43,7 @@ std::string KaleidoscopeJIT::mangle(const std::string &Name) {
   std::string MangledName;
   {
     raw_string_ostream MangledNameStream(MangledName);
-    Mangler::getNameWithPrefix(MangledNameStream, Name, DL);
+    Mangler::getNameWithPrefix(MangledNameStream, Name, dl);
   }
   return MangledName;
 }
@@ -65,8 +65,8 @@ JITSymbol KaleidoscopeJIT::findMangledSymbol(const std::string &Name) {
   // Search modules in reverse order: from last added to first added.
   // This is the opposite of the usual search order for dlsym, but makes more
   // sense in a REPL where we want to bind to the newest available definition.
-  for (auto H : make_range(ModuleKeys.rbegin(), ModuleKeys.rend()))
-    if (auto Sym = CompileLayer.findSymbolIn(H, Name, ExportedSymbolsOnly))
+  for (auto H : make_range(moduleKeys.rbegin(), moduleKeys.rend()))
+    if (auto Sym = compileLayer.findSymbolIn(H, Name, ExportedSymbolsOnly))
       return Sym;
 
   // If we can't find the symbol in the JIT, try looking in the host process.

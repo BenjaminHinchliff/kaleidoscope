@@ -32,24 +32,24 @@ public:
 
   KaleidoscopeJIT();
   TargetMachine &getTargetMachine();
-  VModuleKey addModule(std::unique_ptr<Module> M);
-  void removeModule(VModuleKey K);
-  JITSymbol findSymbol(const std::string Name);
+  VModuleKey addModule(std::unique_ptr<Module> m);
+  void removeModule(VModuleKey k);
+  JITSymbol findSymbol(const std::string name);
 
 private:
-  std::string mangle(const std::string &Name);
-  JITSymbol findMangledSymbol(const std::string &Name);
+  std::string mangle(const std::string &name);
+  JITSymbol findMangledSymbol(const std::string &name);
 
-  ExecutionSession ES;
-  std::shared_ptr<SymbolResolver> Resolver;
-  std::unique_ptr<TargetMachine> TM;
-  const DataLayout DL;
-  ObjLayerT ObjectLayer;
-  CompileLayerT CompileLayer;
-  std::vector<VModuleKey> ModuleKeys;
+  ExecutionSession es;
+  std::shared_ptr<SymbolResolver> resolver;
+  std::unique_ptr<TargetMachine> tm;
+  const DataLayout dl;
+  ObjLayerT objectLayer;
+  CompileLayerT compileLayer;
+  std::vector<VModuleKey> moduleKeys;
 };
 
 } // end namespace orc
 } // end namespace llvm
 
-#endif // KALEIDOSCOPEJIT_HPP_
+#endif // !KALEIDOSCOPEJIT_HPP_
