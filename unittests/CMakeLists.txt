@@ -5,7 +5,7 @@ set(TEST_SRCS
 add_executable(unittests ${TEST_SRCS})
 mark_as_advanced(TEST_SRCS)
 
-target_link_libraries(unittests PUBLIC Kaleidoscope)
+target_link_libraries(unittests PUBLIC kaleidoscope)
 
 target_link_libraries(unittests PUBLIC GTest::GTest GTest::Main)
 
