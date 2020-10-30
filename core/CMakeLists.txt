@@ -3,7 +3,8 @@
 	"tokens.cpp"
 	"ast.cpp"
 	"parser.cpp"
-	"kaleidoscope_jit.cpp")
+	"kaleidoscope_jit.cpp"
+	"codegen.cpp")
 
 add_library(kaleidoscope ${CORE_SRCS})
 mark_as_advanced(CORE_SRCS)
