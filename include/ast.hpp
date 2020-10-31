@@ -3,9 +3,9 @@
 
 #include <iostream>
 #include <memory>
+#include <unordered_map>
 #include <variant>
 #include <vector>
-#include <unordered_map>
 
 #include "llvm/ADT/APFloat.h"
 #include "llvm/ADT/STLExtras.h"
@@ -27,11 +27,14 @@ class Prototype;
 using function_protos_t =
     std::unordered_map<std::string, std::unique_ptr<Prototype>>;
 
-llvm::Function *
-getFunction(llvm::LLVMContext &context, llvm::IRBuilder<> &builder,
-            std::unique_ptr<llvm::Module> &llvmModule,
-            named_values_t &namedValues, function_protos_t &functionProtos,
-            std::unique_ptr<llvm::legacy::FunctionPassManager> &passes);
+class GenState {
+public:
+  llvm::LLVMContext context;
+  llvm::IRBuilder<> builder{context};
+  std::unique_ptr<llvm::Module> llvmModule;
+  named_values_t namedValues;
+  function_protos_t functionProtos;
+};
 
 namespace expr {
 class Number;
@@ -44,22 +47,14 @@ using ExprNode = std::variant<Number, Variable, Binary, Call>;
 class ExprInterface {
 public:
   virtual ~ExprInterface() {}
-  virtual llvm::Value *codegen(llvm::LLVMContext &context,
-                               llvm::IRBuilder<> &builder,
-                               std::unique_ptr<llvm::Module> &llvmModule,
-                               named_values_t &namedValues,
-                               function_protos_t &functionProtos) = 0;
+  virtual llvm::Value *codegen(GenState &state) = 0;
 };
 
 class Number : public ExprInterface {
 public:
   Number(double val);
 
-  virtual llvm::Value *codegen(llvm::LLVMContext &context,
-                               llvm::IRBuilder<> &builder,
-                               std::unique_ptr<llvm::Module> &llvmModule,
-                               named_values_t &namedValues,
-                               function_protos_t &functionProtos) override;
+  virtual llvm::Value *codegen(GenState &state) override;
 
   friend std::ostream &operator<<(std::ostream &out, const Number &expr);
 
@@ -70,11 +65,7 @@ class Variable : public ExprInterface {
 public:
   Variable(const std::string &name);
 
-  virtual llvm::Value *codegen(llvm::LLVMContext &context,
-                               llvm::IRBuilder<> &builder,
-                               std::unique_ptr<llvm::Module> &llvmModule,
-                               named_values_t &namedValues,
-                               function_protos_t &functionProtos) override;
+  virtual llvm::Value *codegen(GenState &state) override;
 
   friend std::ostream &operator<<(std::ostream &out, const Variable &var);
 
@@ -85,11 +76,7 @@ class Binary : public ExprInterface {
 public:
   Binary(char op, std::unique_ptr<ExprNode> lhs, std::unique_ptr<ExprNode> rhs);
 
-  virtual llvm::Value *codegen(llvm::LLVMContext &context,
-                               llvm::IRBuilder<> &builder,
-                               std::unique_ptr<llvm::Module> &llvmModule,
-                               named_values_t &namedValues,
-                               function_protos_t &functionProtos) override;
+  virtual llvm::Value *codegen(GenState &state) override;
 
   char op;
   std::unique_ptr<ExprNode> lhs;
@@ -102,11 +89,7 @@ class Call : public ExprInterface {
 public:
   Call(const std::string &callee, std::vector<std::unique_ptr<ExprNode>> args);
 
-  virtual llvm::Value *codegen(llvm::LLVMContext &context,
-                               llvm::IRBuilder<> &builder,
-                               std::unique_ptr<llvm::Module> &llvmModule,
-                               named_values_t &namedValues,
-                               function_protos_t &functionProtos) override;
+  virtual llvm::Value *codegen(GenState &state) override;
 
   std::string callee;
   std::vector<std::unique_ptr<ExprNode>> args;
@@ -120,11 +103,7 @@ public:
   Prototype(const std::string &name, std::vector<std::string> args,
             bool isExtern = false);
 
-  llvm::Function *codegen(llvm::LLVMContext &context,
-                          llvm::IRBuilder<> &builder,
-                          std::unique_ptr<llvm::Module> &llvmModule,
-                          named_values_t &namedValues,
-                          function_protos_t &functionProtos);
+  llvm::Function *codegen(GenState &state);
 
   std::string name;
   std::vector<std::string> args;
@@ -136,11 +115,7 @@ public:
   Function(std::unique_ptr<Prototype> proto,
            std::unique_ptr<expr::ExprNode> body);
 
-  llvm::Function *codegen(llvm::LLVMContext &context,
-                          llvm::IRBuilder<> &builder,
-                          std::unique_ptr<llvm::Module> &llvmModule,
-                          named_values_t &namedValues,
-                          function_protos_t &functionProtos);
+  llvm::Function *codegen(GenState &state);
 
   std::unique_ptr<Prototype> proto;
   std::unique_ptr<expr::ExprNode> body;
