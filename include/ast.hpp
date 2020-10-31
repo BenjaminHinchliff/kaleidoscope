@@ -3,9 +3,9 @@
 
 #include <iostream>
 #include <memory>
-#include <unordered_map>
 #include <variant>
 #include <vector>
+#include <unordered_map>
 
 #include "llvm/ADT/APFloat.h"
 #include "llvm/ADT/STLExtras.h"
@@ -44,7 +44,6 @@ using ExprNode = std::variant<Number, Variable, Binary, Call>;
 class ExprInterface {
 public:
   virtual ~ExprInterface() {}
-  // defined in codegen.cpp
   virtual llvm::Value *codegen(llvm::LLVMContext &context,
                                llvm::IRBuilder<> &builder,
                                std::unique_ptr<llvm::Module> &llvmModule,
@@ -103,7 +102,6 @@ class Call : public ExprInterface {
 public:
   Call(const std::string &callee, std::vector<std::unique_ptr<ExprNode>> args);
 
-  // defined in codegen.cpp
   virtual llvm::Value *codegen(llvm::LLVMContext &context,
                                llvm::IRBuilder<> &builder,
                                std::unique_ptr<llvm::Module> &llvmModule,
@@ -138,7 +136,6 @@ public:
   Function(std::unique_ptr<Prototype> proto,
            std::unique_ptr<expr::ExprNode> body);
 
-  // defined in codegen.cpp
   llvm::Function *codegen(llvm::LLVMContext &context,
                           llvm::IRBuilder<> &builder,
                           std::unique_ptr<llvm::Module> &llvmModule,
