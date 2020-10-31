@@ -19,14 +19,6 @@ std::unique_ptr<ast::AstNode> Parser::parse(lexer::Lexer &input) const {
                  },
                  [&](const auto &) { return parseTopLevelExpr(input); }},
       next);
-  try {
-    auto end = std::get<tokens::Character>(input.pop());
-    if (end.character != ';') {
-      throw std::runtime_error("no end semicolon");
-    }
-  } catch (const std::bad_variant_access &e) {
-    throw std::runtime_error("invalid end character");
-  }
   return ret;
 }
 

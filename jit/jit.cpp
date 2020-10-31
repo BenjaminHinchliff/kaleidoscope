@@ -63,7 +63,7 @@ int main() {
       std::cout << "ready> ";
       std::string source;
       std::getline(std::cin, source);
-      if (source == "exit;") {
+      if (source == "exit") {
         break;
       }
       std::stringstream sourceStream(source);
