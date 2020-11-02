@@ -30,10 +30,11 @@ using function_protos_t =
 class GenState {
 public:
   llvm::LLVMContext context;
-  llvm::IRBuilder<> builder{context};
+  llvm::IRBuilder<> builder = llvm::IRBuilder<>(context);
   std::unique_ptr<llvm::Module> llvmModule;
   named_values_t namedValues;
   function_protos_t functionProtos;
+  std::unique_ptr<llvm::legacy::FunctionPassManager> optPasses = nullptr;
 };
 
 namespace expr {

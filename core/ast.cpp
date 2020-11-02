@@ -171,6 +171,11 @@ llvm::Function *Function::codegen(GenState &state) {
         std::visit([&](auto &ret) { return ret.codegen(state); }, *body);
     state.builder.CreateRet(retVal);
     llvm::verifyFunction(*function);
+
+    if (state.optPasses) {
+      state.optPasses->run(*function);
+    }
+
     return function;
   } catch (const std::exception &e) {
     function->eraseFromParent();

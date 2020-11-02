@@ -4,6 +4,11 @@
 
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Target/TargetMachine.h"
+#include "llvm/Support/TargetSelect.h"
+#include "llvm/Target/TargetMachine.h"
+#include "llvm/Transforms/InstCombine/InstCombine.h"
+#include "llvm/Transforms/Scalar.h"
+#include "llvm/Transforms/Scalar/GVN.h"
 
 #include "kaleidoscope_jit.hpp"
 #include "parser.hpp"
@@ -13,18 +18,26 @@ template <class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
 
 using jit_ptr_t = llvm::orc::KaleidoscopeJIT;
 
-std::unique_ptr<llvm::Module> makeModule(llvm::LLVMContext &context,
-                                         jit_ptr_t &jit) {
-  auto llvmMod = std::make_unique<llvm::Module>("KaleidoscopeJIT", context);
-  llvmMod->setDataLayout(jit.getTargetMachine().createDataLayout());
-  return llvmMod;
+namespace legacy = llvm::legacy;
+
+void makeModule(ast::GenState &state, jit_ptr_t &jit) {
+  state.llvmModule =
+      std::make_unique<llvm::Module>("KaleidoscopeJIT", state.context);
+  state.llvmModule->setDataLayout(jit.getTargetMachine().createDataLayout());
+  state.optPasses =
+      std::make_unique<legacy::FunctionPassManager>(state.llvmModule.get());
+  state.optPasses->add(llvm::createInstructionCombiningPass());
+  state.optPasses->add(llvm::createReassociatePass());
+  state.optPasses->add(llvm::createGVNPass());
+  state.optPasses->add(llvm::createCFGSimplificationPass());
+  state.optPasses->doInitialization();
 }
 
 void parseAndExecuteTokenStream(lexer::Lexer &lexer,
                                 const parser::Parser &parser,
                                 llvm::orc::KaleidoscopeJIT &jit,
                                 ast::GenState &state) {
-  state.llvmModule = makeModule(state.context, jit);
+  makeModule(state, jit);
 
   while (!std::holds_alternative<tokens::Eof>(lexer.peek())) {
     auto ast = parser.parse(lexer);
@@ -56,7 +69,7 @@ int main() {
   ast::GenState state;
   llvm::orc::KaleidoscopeJIT jit;
 
-  parser::Parser parser{};
+  parser::Parser parser;
 
   while (true) {
     try {
