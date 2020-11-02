@@ -56,13 +56,15 @@ llvm::Value *Binary::codegen(GenState &state) {
 
   // TODO: maybe not a switch (map of function pointers?)
   switch (op) {
-  case L'+':
+  case '+':
     return state.builder.CreateFAdd(L, R, "addtmp");
-  case L'-':
+  case '-':
     return state.builder.CreateFSub(L, R, "subtmp");
-  case L'*':
+  case '*':
     return state.builder.CreateFMul(L, R, "multmp");
-  case L'<':
+  case '/':
+    return state.builder.CreateFDiv(L, R, "divtmp");
+  case '<':
     L = state.builder.CreateFCmpULT(L, R, "cmptmp");
     return state.builder.CreateUIToFP(L, llvm::Type::getDoubleTy(state.context),
                                       "booltmp");

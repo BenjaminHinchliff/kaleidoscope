@@ -84,8 +84,15 @@ Parser::parsePrimary(const tokens::Token &token, lexer::Lexer &input) const {
             return parseIdentifier(ident, input);
           },
           [&](const tokens::Number &number) { return parseNumber(number); },
-          [&](const tokens::Character &character) { return parseParen(input); },
-          [](const auto &) {
+          [&](const tokens::Character &character) {
+            if (character == '(') {
+              return parseParen(input);
+            } else {
+              throw std::runtime_error(
+                  "unable to parse unknown parentheses character");
+            }
+          },
+          [&](const auto &) { throw std::runtime_error("unknown expression when trying to primary parse it");
             return std::unique_ptr<ast::expr::ExprNode>(nullptr);
           }},
       token);

@@ -38,7 +38,7 @@ private:
 
 public:
   std::unordered_map<char, int> binOpPrecedence{
-      {'<', 10}, {'+', 20}, {'-', 20}, {'*', 40}};
+      {'<', 10}, {'+', 20}, {'-', 20}, {'*', 40}, {'/', 20}};
 };
 } // namespace parser
 
