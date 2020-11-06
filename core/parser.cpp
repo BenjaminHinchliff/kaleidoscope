@@ -92,7 +92,9 @@ Parser::parsePrimary(const tokens::Token &token, lexer::Lexer &input) const {
                   "unable to parse unknown parentheses character");
             }
           },
-          [&](const auto &) { throw std::runtime_error("unknown expression when trying to primary parse it");
+          [&](const auto &) {
+            throw std::runtime_error(
+                "unknown expression when trying to primary parse it");
             return std::unique_ptr<ast::expr::ExprNode>(nullptr);
           }},
       token);
@@ -132,16 +134,14 @@ Parser::parseIdentifier(const tokens::Identifier &ident,
   if (!(input.peek() == tokens::Token{tokens::Character{L'('}})) {
     return std::make_unique<ast::expr::ExprNode>(idName);
   }
-
-  assertIsCharacter(input.pop(), '(', "prototype must open with '('");
+  input.pop();
 
   std::vector<std::unique_ptr<ast::expr::ExprNode>> args;
   tokens::Token token;
   while (true) {
-    if (auto arg = parseExpression(input))
-      args.push_back(std::move(arg));
-    else
-      return nullptr;
+    if (!std::holds_alternative<tokens::Character>(input.peek())) {
+      args.push_back(std::move(parseExpression(input)));
+    }
     token = input.pop();
     wchar_t character;
     try {

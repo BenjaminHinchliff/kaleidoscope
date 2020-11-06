@@ -4,17 +4,12 @@
 
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Target/TargetMachine.h"
-#include "llvm/Support/TargetSelect.h"
-#include "llvm/Target/TargetMachine.h"
 #include "llvm/Transforms/InstCombine/InstCombine.h"
 #include "llvm/Transforms/Scalar.h"
 #include "llvm/Transforms/Scalar/GVN.h"
 
 #include "kaleidoscope_jit.hpp"
 #include "parser.hpp"
-
-template <class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
-template <class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
 
 using jit_ptr_t = llvm::orc::KaleidoscopeJIT;
 
@@ -37,14 +32,11 @@ void parseAndExecuteTokenStream(lexer::Lexer &lexer,
                                 const parser::Parser &parser,
                                 llvm::orc::KaleidoscopeJIT &jit,
                                 ast::GenState &state) {
-  makeModule(state, jit);
-
   while (!std::holds_alternative<tokens::Eof>(lexer.peek())) {
     auto ast = parser.parse(lexer);
-    auto fnIR = std::visit(
-        overloaded{[&](ast::Prototype &ast) { return ast.codegen(state); },
-                   [&](ast::Function &ast) { return ast.codegen(state); }},
-        *ast);
+
+    makeModule(state, jit);
+    auto fnIR = std::visit([&](auto &ast) { return ast.codegen(state); }, *ast);
 
     std::cout << "IR:\n";
     fnIR->print(llvm::outs(), nullptr);
